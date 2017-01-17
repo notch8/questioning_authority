@@ -12,4 +12,10 @@ describe Qa::Authorities::Base do
       expect { subject.find('moomin') }.to raise_error NotImplementedError
     end
   end
+
+  describe '#search' do
+    it 'is unimplemeted' do
+      expect { subject.search('moomin') }.to raise_error NotImplementedError
+    end
+  end
 end
