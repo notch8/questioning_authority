@@ -20,6 +20,9 @@ describe Qa::TermsController, type: :controller do
   end
 
   describe "#init_authority" do
+    # allow logger stub to receive arbitrary warnings
+    before { allow(Rails.logger).to receive(:warn) }
+
     context "when the authority does not exist" do
       it "returns 404" do
         expect(Rails.logger).to receive(:warn).with("Unable to initialize authority Qa::Authorities::Non-existent-authority")

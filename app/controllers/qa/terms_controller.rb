@@ -32,9 +32,13 @@ class Qa::TermsController < ApplicationController
     head :not_found unless params[:vocab].present?
   end
 
+  ##
+  # @todo: remove constantizing when deprecation warnings in {#authority_class} 
+  #   are removed
   def init_authority
     begin
-      mod = authority_class.camelize.constantize
+      mod = authority_class
+      mod = mod.camelize.constantize unless mod.is_a? Class
     rescue NameError
       logger.warn "Unable to initialize authority #{authority_class}"
       head :not_found
@@ -58,8 +62,16 @@ class Qa::TermsController < ApplicationController
   end
 
   private
-
+    ##
+    # @todo: remove deprecations and constant string constructiong
     def authority_class
+      Qa::Authorities.class_for(name: params[:vocab])
+    rescue NameError => e
+      warn(e.message)
+      logger.warn(e.message + 
+                  "\n[DEPRECATION] Auto-constantizing of authorities is " \
+                  'deprecated. Register your authorities with `QA::Authority' \
+                  '.register(name: :my_name, klass: MyAuthority)`')
       "Qa::Authorities::" + params[:vocab].capitalize
     end
 
