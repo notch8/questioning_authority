@@ -89,6 +89,24 @@ module Qa::Authorities
         Config.predicate_uri(results, :sort_predicate)
       end
 
+      # Does this authority configuration support additional context in search results?
+      # @return [True|False] true if additional context in search results is supported; otherwise, false
+      def supports_context?
+        return true unless results_context.nil? || results_context.empty?
+        false
+      end
+
+      # Return results sort_predicate
+      # @return [String] the configured predicate to use for sorting results from the query search
+      def results_context
+        return nil if results.nil?
+        config_context = results.fetch(:context, nil)
+        return nil if config_context.nil?
+        context = {}
+        config_context.each_key { |k| context[k] = Config.predicate_uri(config_context, k) }
+        context
+      end
+
       # Return parameters that are required for QA api
       # @return [Hash] the configured search url parameter mappings
       def qa_replacement_patterns

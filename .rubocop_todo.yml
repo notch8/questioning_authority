@@ -14,6 +14,7 @@ Metrics/ClassLength:
     - 'lib/qa/authorities/linked_data/find_term.rb'
     - 'lib/qa/authorities/linked_data/search_query.rb'
     - 'lib/qa/authorities/linked_data/config/term_config.rb'
+    - 'lib/qa/authorities/linked_data/config/search_config.rb'
 
 Metrics/CyclomaticComplexity:
   Exclude:

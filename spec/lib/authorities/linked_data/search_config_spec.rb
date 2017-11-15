@@ -53,7 +53,11 @@ RSpec.describe Qa::Authorities::LinkedData::SearchConfig do
           id_predicate: 'http://purl.org/dc/terms/identifier',
           label_predicate: 'http://www.w3.org/2004/02/skos/core#prefLabel',
           altlabel_predicate: 'http://www.w3.org/2004/02/skos/core#altLabel',
-          sort_predicate: 'http://www.w3.org/2004/02/skos/core#prefLabel'
+          sort_predicate: 'http://www.w3.org/2004/02/skos/core#prefLabel',
+          context: {
+            Broader: 'http://www.w3.org/2004/02/skos/core#broader',
+            Narrower: 'http://www.w3.org/2004/02/skos/core#narrower'
+          }
         },
         subauthorities: {
           search_sub1_key: 'search_sub1_name',
@@ -155,7 +159,11 @@ RSpec.describe Qa::Authorities::LinkedData::SearchConfig do
         id_predicate: 'http://purl.org/dc/terms/identifier',
         label_predicate: 'http://www.w3.org/2004/02/skos/core#prefLabel',
         altlabel_predicate: 'http://www.w3.org/2004/02/skos/core#altLabel',
-        sort_predicate: 'http://www.w3.org/2004/02/skos/core#prefLabel'
+        sort_predicate: 'http://www.w3.org/2004/02/skos/core#prefLabel',
+        context: {
+          Broader: 'http://www.w3.org/2004/02/skos/core#broader',
+          Narrower: 'http://www.w3.org/2004/02/skos/core#narrower'
+        }
       }
     end
 
@@ -218,6 +226,34 @@ RSpec.describe Qa::Authorities::LinkedData::SearchConfig do
     end
     it 'returns the predicate on which results should be sorted' do
       expect(full_config.results_sort_predicate).to eq RDF::URI('http://www.w3.org/2004/02/skos/core#prefLabel')
+    end
+  end
+
+  describe '#supports_context?' do
+    it 'returns false if only term configuration is defined' do
+      expect(term_only_config.supports_context?).to eq false
+    end
+    it 'returns false if context is NOT defined' do
+      expect(min_config.supports_context?).to eq false
+    end
+    it 'returns true if context IS defined' do
+      expect(full_config.supports_context?).to eq true
+    end
+  end
+
+  describe '#results_context' do
+    it 'returns nil if only term configuration is defined' do
+      expect(term_only_config.results_context).to eq nil
+    end
+    it 'returns nil if context is NOT defined' do
+      expect(min_config.results_context).to eq nil
+    end
+    it 'returns hash of predicates to use as additional context if context IS defined' do
+      expected_hash = {
+        Broader: RDF::URI('http://www.w3.org/2004/02/skos/core#broader'),
+        Narrower: RDF::URI('http://www.w3.org/2004/02/skos/core#narrower')
+      }
+      expect(full_config.results_context).to eq expected_hash
     end
   end
 
