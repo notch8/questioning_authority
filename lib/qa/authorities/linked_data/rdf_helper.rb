@@ -96,12 +96,15 @@ module Qa::Authorities
             preds[:optional].each do |key, pred|
               pattern([:uri, pred, key], optional: true)
             end
+            preds[:context].each do |key, pred|
+              pattern([:uri, pred, key], optional: true)
+            end
           end
         end
 
         def sort_string_by_language(str_literals)
           return str_literals if str_literals.nil? || str_literals.size <= 0
-          str_literals.sort! { |a, b| a.language <=> b.language }
+          str_literals.sort! { |a, b| a.language <=> b.language } if str_literals.first.respond_to? :language
           str_literals.collect!(&:to_s)
           str_literals.uniq!
           str_literals.delete_if { |s| s.nil? || s.length <= 0 }
