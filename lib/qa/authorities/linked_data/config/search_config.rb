@@ -89,6 +89,19 @@ module Qa::Authorities
         Config.predicate_uri(results, :sort_predicate)
       end
 
+      # Does this authority configuration select results based on a predicate existing?
+      # @return [True|False] true if sorting of search results is supported; otherwise, false
+      def select_results_based_on_predicate?
+        return true unless results_selector_predicate.nil? || !results_selector_predicate.size.positive?
+        false
+      end
+
+      # Return predicate that is used to select a subject URI as a matching result term
+      # @return [String] the configured predicate to use to select a subject URI as a matching result term
+      def results_selector_predicate
+        Config.predicate_uri(results, :selector_predicate)
+      end
+
       # Does this authority configuration support additional context in search results?
       # @return [True|False] true if additional context in search results is supported; otherwise, false
       def supports_context?

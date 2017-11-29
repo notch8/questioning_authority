@@ -11,6 +11,7 @@ module Qa::Authorities
       end
 
       attr_reader :search_config
+      attr_reader :graph
 
       delegate :subauthority?, :supports_sort?, to: :search_config
 
@@ -29,23 +30,25 @@ module Qa::Authorities
         language ||= search_config.language
         url = search_config.url_with_replacements(query, subauth, replacements)
         Rails.logger.info "QA Linked Data search url: #{url}"
-        graph = get_linked_data(url)
-        parse_search_authority_response(graph, language)
+        @graph = get_linked_data(url)
+        parse_search_authority_response(language)
       end
 
       private
 
-        def parse_search_authority_response(graph, language)
-          graph = filter_language(graph, language) unless language.nil?
-          graph = filter_out_blanknodes(graph)
-          results = extract_preds(graph, preds_for_search)
-          consolidated_results = consolidate_search_results(results)
+        def parse_search_authority_response(language)
+          @graph = filter_language(graph, language) unless language.nil?
+          @graph = filter_out_blanknodes(graph)
+          results = extract_preds(graph, preds_for_search(include_sort: true, include_context: true))
+          consolidated_results = consolidate_search_results(results, include_context: true)
           json_results = convert_search_to_json(consolidated_results)
           sort_search_results(json_results)
         end
 
-        def preds_for_search
-          { required: required_search_preds, optional: optional_search_preds, context: context_search_preds }
+        def preds_for_search(include_sort: true, include_context: false)
+          preds = { required: required_search_preds, optional: optional_search_preds(include_sort) }
+          preds[:context] = context_search_preds if include_context
+          preds
         end
 
         def required_search_preds
@@ -54,11 +57,12 @@ module Qa::Authorities
           { label: label_pred_uri }
         end
 
-        def optional_search_preds
+        def optional_search_preds(include_sort)
           preds = {}
           preds[:altlabel] = search_config.results_altlabel_predicate unless search_config.results_altlabel_predicate.nil?
           preds[:id] = search_config.results_id_predicate unless search_config.results_id_predicate.nil?
-          preds[:sort] = search_config.results_sort_predicate unless search_config.results_sort_predicate.nil?
+          preds[:sort] = search_config.results_sort_predicate unless search_config.results_sort_predicate.nil? || !include_sort
+          preds[:selector] = search_config.results_selector_predicate if search_config.select_results_based_on_predicate?
           preds
         end
 
@@ -66,37 +70,80 @@ module Qa::Authorities
           search_config.results_context || {}
         end
 
-        def consolidate_search_results(results) # rubocop:disable Metrics/MethodLength
+        def consolidate_search_results(results, include_context: false, process_all: false, default_uri: nil)
+          return {} if results.nil? || !results.count.positive?
+          consolidated_results = convert_statements_to_hash(results, include_context, process_all, default_uri)
+          consolidated_results = sort_multiple_result_values(consolidated_results)
+          consolidated_results = fill_in_secondary_context_values(consolidated_results) if include_context
+          consolidated_results
+        end
+
+        def convert_statements_to_hash(results, include_context, process_all, default_uri)
           consolidated_results = {}
-          return consolidated_results if results.nil? || !results.count.positive?
           results.each do |statement|
             stmt_hash = statement.to_h
             uri = stmt_hash[:uri].to_s
+            uri = default_uri unless uri.present?
+
             consolidated_hash = init_consolidated_hash(consolidated_results, uri, stmt_hash[:id].to_s)
+            next unless process_all || result_statement?(stmt_hash)
 
             consolidated_hash[:label] = object_value(stmt_hash, consolidated_hash, :label, false)
             consolidated_hash[:altlabel] = object_value(stmt_hash, consolidated_hash, :altlabel, false)
             consolidated_hash[:sort] = object_value(stmt_hash, consolidated_hash, :sort, false)
 
-            # add context
-            context_search_preds.each_key do |k|
-              consolidated_hash[k] = object_value(stmt_hash, consolidated_hash, k, false)
-            end
+            consolidated_hash = extract_context_values(stmt_hash, consolidated_hash) if include_context
 
             consolidated_results[uri] = consolidated_hash
           end
-          consolidated_results.each do |res|
-            consolidated_hash = res[1]
-            consolidated_hash[:label] = sort_string_by_language consolidated_hash[:label]
-            consolidated_hash[:altlabel] = sort_string_by_language consolidated_hash[:altlabel]
-            consolidated_hash[:sort] = sort_string_by_language consolidated_hash[:sort]
+          consolidated_results
+        end
 
-            # consolidate context
-            context_search_preds.each_key do |k|
-              consolidated_hash[k] = sort_string_by_language consolidated_hash[k]
-            end
+        def extract_context_values(stmt_hash, consolidated_hash)
+          current_context = consolidated_hash[:context] || {}
+          context = {}
+          context_search_preds.each_key do |k|
+            context[k] = object_value(stmt_hash, current_context, k, false)
+          end
+          consolidated_hash[:context] = context
+          consolidated_hash
+        end
+
+        def sort_multiple_result_values(consolidated_results)
+          consolidated_results.each do |uri, predicate_hash|
+            predicate_hash[:label] = sort_string_by_language predicate_hash[:label]
+            predicate_hash[:altlabel] = sort_string_by_language predicate_hash[:altlabel]
+            predicate_hash[:sort] = sort_string_by_language predicate_hash[:sort]
+            consolidated_results[uri] = predicate_hash
           end
           consolidated_results
+        end
+
+        def fill_in_secondary_context_values(consolidated_results)
+          return consolidated_results unless search_config.supports_context?
+          consolidated_results.each do |uri, predicate_hash|
+            context = predicate_hash[:context]
+            context_search_preds.each_key do |k|
+              if context[k].first.is_a? RDF::URI
+                filled_context = {}
+                context[k].each do |context_uri|
+                  expanded_results = extract_preds_for_uri(graph, preds_for_search(include_context: false, include_sort: false), context_uri)
+                  filled_context.merge!(consolidate_search_results(expanded_results, include_context: false, process_all: true, default_uri: context_uri.to_s))
+                end
+                context[k] = filled_context
+              else
+                context[k] = sort_string_by_language context[k]
+              end
+            end
+            predicate_hash[:context] = context
+            consolidated_results[uri] = predicate_hash
+          end
+          consolidated_results
+        end
+
+        def result_statement?(stmt_hash)
+          return true unless search_config.select_results_based_on_predicate?
+          stmt_hash[:selector].present?
         end
 
         def convert_search_to_json(consolidated_results)
@@ -112,7 +159,15 @@ module Qa::Authorities
         def context_json(consolidated_results_hash)
           context_json = {}
           context_search_preds.each_key do |k|
-            context_json[k] = consolidated_results_hash[k]
+            if consolidated_results_hash[:context][k].is_a? Hash
+              json_value = []
+              consolidated_results_hash[:context][k].each do |uri, ch|
+                json_value << { uri: uri, id: ch[:id], label: full_label(ch[:label], ch[:altlabel]) }
+              end
+            else
+              json_value = consolidated_results_hash[:context][k]
+            end
+            context_json[k] = json_value
           end
           context_json
         end

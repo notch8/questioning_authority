@@ -102,6 +102,20 @@ module Qa::Authorities
           end
         end
 
+        def extract_preds_for_uri(graph, preds, uri)
+          RDF::Query.execute(graph) do
+            preds[:required].each do |key, pred|
+              pattern([uri, pred, key])
+            end
+            preds[:optional].each do |key, pred|
+              pattern([uri, pred, key], optional: true)
+            end
+            preds[:context].each do |key, pred|
+              pattern([uri, pred, key], optional: true)
+            end if preds.key? :context
+          end
+        end
+
         def sort_string_by_language(str_literals)
           return str_literals if str_literals.nil? || str_literals.size <= 0
           str_literals.sort! { |a, b| a.language <=> b.language } if str_literals.first.respond_to? :language
