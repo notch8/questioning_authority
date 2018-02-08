@@ -30,8 +30,15 @@ module Qa::Authorities
         language ||= search_config.language
         url = search_config.url_with_replacements(query, subauth, replacements)
         Rails.logger.info "QA Linked Data search url: #{url}"
+        access_start_dt = Time.now
         @graph = get_linked_data(url)
-        parse_search_authority_response(language)
+        access_end_dt = Time.now
+        Rails.logger.info("Time to receive data from authority: #{access_end_dt - access_start_dt}s")
+        parse_start_dt = Time.now
+        json = parse_search_authority_response(language)
+        parse_end_dt = Time.now
+        Rails.logger.info("Time to convert data to json: #{parse_end_dt - parse_start_dt}s")
+        json
       end
 
       private

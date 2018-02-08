@@ -98,7 +98,7 @@ module Qa::Authorities
             end
             preds[:context].each do |key, pred|
               pattern([:uri, pred, key], optional: true)
-            end
+            end if preds.key? :context
           end
         end
 

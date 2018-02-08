@@ -38,10 +38,20 @@ module Qa::Authorities
         language ||= term_config.term_language
         url = term_config.term_url_with_replacements(id, subauth, replacements)
         Rails.logger.info "QA Linked Data term url: #{url}"
+        access_start_dt = Time.now
         graph = get_linked_data(url)
+        access_end_dt = Time.now
+        Rails.logger.info("Time to receive data from authority: #{access_end_dt - access_start_dt}s")
         return "{}" unless graph.size.positive?
-        return graph.dump(:jsonld, standard_prefixes: true) if jsonld
-        parse_term_authority_response(id, graph, language)
+        parse_start_dt = Time.now
+        if jsonld
+          json = graph.dump(:jsonld, standard_prefixes: true)
+        else
+          json = parse_term_authority_response(id, graph, language)
+        end
+        parse_end_dt = Time.now
+        Rails.logger.info("Time to convert data to json: #{parse_end_dt - parse_start_dt}s")
+        json
       end
 
       private
