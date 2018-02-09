@@ -420,33 +420,12 @@ describe Qa::Authorities::LinkedData::TermConfig do
       end
     end
 
-<<<<<<< e7b9bab41c625ab4d6d0dcfee33cb853f3505c4f
     context 'with encoding specified in config' do
       it 'returns the uri as the url' do
         expected_url = 'http://localhost/test_default/term?uri=http%3A%2F%2Fencoded%2Ebecause%3Fencode%3Dtrue&yes%3Aencoded%20here&no:encoding here&defaults:to not encoded'
         term_uri = 'http://encoded.because?encode=true'
         replacements = { encode_true: 'yes:encoded here', encode_false: 'no:encoding here', encode_not_specified: 'defaults:to not encoded' }
         expect(encoding_config.term_url_with_replacements(term_uri, nil, replacements)).to eq expected_url
-=======
-    context 'when uri is the template url' do
-      it 'returns the uri as the url' do
-        expected_url = 'http://example.org/resource/C123'
-        expect(uri_only_config.term_url_with_replacements('http://example.org/resource/C123')).to eq expected_url
-      end
-    end
-
-    context 'when uri is a parameter of the template url' do
-      it 'returns the url with the uri substituted' do
-        expected_url = 'http://localhost/test_default/term?uri=http%3A%2F%2Fexample%2Eorg%2Fresource%2FC123'
-        expect(uri_param_config.term_url_with_replacements('http://example.org/resource/C123')).to eq expected_url
-      end
-    end
-
-    context 'when id is a parameter of the template url' do
-      it 'returns the url with the id substituted' do
-        expected_url = 'http://localhost/test_default/term/C123'
-        expect(uri_id_config.term_url_with_replacements('C123')).to eq expected_url
->>>>>>> support the common forms used to define a term template
       end
     end
   end
