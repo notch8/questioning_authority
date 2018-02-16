@@ -136,6 +136,7 @@ module Qa::Authorities
                 context[k].each do |context_uri|
                   expanded_results = extract_preds_for_uri(graph, preds_for_search(include_context: false, include_sort: false), context_uri)
                   filled_context.merge!(consolidate_search_results(expanded_results, include_context: false, process_all: true, default_uri: context_uri.to_s))
+                  filled_context = { uri: context_uri } if expanded_results.blank?
                 end
                 context[k] = filled_context
               else
@@ -167,9 +168,13 @@ module Qa::Authorities
           context_json = {}
           context_search_preds.each_key do |k|
             if consolidated_results_hash[:context][k].is_a? Hash
-              json_value = []
-              consolidated_results_hash[:context][k].each do |uri, ch|
-                json_value << { uri: uri, id: ch[:id], label: full_label(ch[:label], ch[:altlabel]) }
+              if consolidated_results_hash[:context][k].size == 1
+                json_value = consolidated_results_hash[:context][k].values.first.to_s
+              else
+                json_value = []
+                consolidated_results_hash[:context][k].each do |uri, ch|
+                  json_value << { uri: uri, id: ch[:id], label: full_label(ch[:label], ch[:altlabel]) }
+                end
               end
             else
               json_value = consolidated_results_hash[:context][k]
