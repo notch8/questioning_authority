@@ -4,7 +4,7 @@ require 'rdf'
 # @see Qa::Authorities::LinkedData::GenericAuthority
 module Qa::Authorities
   module LinkedData
-    module RdfHelper
+    module RdfHelper # rubocop:disable Metrics/ModuleLength
       private
 
         def object_value(stmt_hash, consolidated_hash, name, as_string = true)
