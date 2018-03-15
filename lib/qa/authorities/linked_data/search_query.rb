@@ -76,6 +76,15 @@ module Qa::Authorities
           preds
         end
 
+        # @returns hash of predicates for additional context
+        # @example hash of predicates
+        #   {
+        #     :"Alternate Label" => #<RDF::URI http://www.w3.org/2004/02/skos/core#altLabel>,
+        #     :Broader => #<RDF::URI http://www.w3.org/2004/02/skos/core#broader>,
+        #     :Narrower => #<RDF::URI http://www.w3.org/2004/02/skos/core#narrower>,
+        #     :"Exact Match" => #<RDF::URI http://www.w3.org/2004/02/skos/core#exactMatch>,
+        #     :Note => #<RDF::URI http://www.w3.org/2004/02/skos/core#note>
+        #   }
         def context_search_preds
           search_config.results_context || {}
         end
@@ -83,11 +92,44 @@ module Qa::Authorities
         def consolidate_search_results(results, include_context: false, process_all: false, default_uri: nil)
           return {} if results.nil? || !results.count.positive?
           consolidated_results = convert_statements_to_hash(results, include_context, process_all, default_uri)
-          consolidated_results = sort_multiple_result_values(consolidated_results)
+          consolidated_results = sort_multiple_result_values(consolidated_results) # sorts and converts to strings
           consolidated_results = fill_in_secondary_context_values(consolidated_results) if include_context
           consolidated_results
         end
 
+        # Converts graph statements into a hash
+        # @returns hash of statements in results graph
+        # @example hash of statments
+        #   {
+        #     "http://id.loc.gov/authorities/genreForms/gf2014027106"=>
+        #       {
+        #         :id=>"http://id.loc.gov/authorities/genreForms/gf2014027106",
+        #         :label=>[#<RDF::Literal:0x3fe50b55a020("Soul music"@en)>],
+        #         :altlabel=>[],
+        #         :sort=>[#<RDF::Literal:0x3fe50b54acec("1")>],
+        #         :context=>{
+        #           :"Alternate Label"=>[],
+        #           :Broader=>[#<RDF::URI:0x3fe5099785c8 URI:http://id.loc.gov/authorities/genreForms/gf2014027009>],
+        #           :Narrower=>[#<RDF::URI:0x3fe50b57e36c URI:http://id.loc.gov/authorities/genreForms/gf2014026998>, #<RDF::URI:0x3fe509981574 URI:http://id.loc.gov/authorities/genreForms/gf2014027098>],
+        #           :"Exact Match"=>[],
+        #           :Note=>[]
+        #         }
+        #       },
+        #     "http://id.loc.gov/authorities/genreForms/gf2014026998"=>
+        #       {
+        #         :id=>"http://id.loc.gov/authorities/genreForms/gf2014026998",
+        #         :label=>[#<RDF::Literal:0x3fe50b73d950("Philadelphia soul (Music)"@en)>],
+        #         :altlabel=>[],
+        #         :sort=>[#<RDF::Literal:0x3fe50b6f9854("2")>],
+        #         :context=>{
+        #           :"Alternate Label"=>[#<RDF::Literal:0x3fe50b725328("Philly soul (Music)")>, #<RDF::Literal:0x3fe50b7247fc("Sound of Philadelphia (Music)")>],
+        #           :Broader=>[#<RDF::URI:0x3fe50b721de0 URI:http://id.loc.gov/authorities/genreForms/gf2014027106>],
+        #           :Narrower=>[],
+        #           :"Exact Match"=>[],
+        #           :Note=>[]
+        #         }
+        #       },
+        #     }
         def convert_statements_to_hash(results, include_context, process_all, default_uri)
           consolidated_results = {}
           results.each do |statement|
@@ -136,10 +178,19 @@ module Qa::Authorities
             context_search_preds.each_key do |k|
               if context[k].first.is_a? RDF::URI
                 filled_context = {}
+                blank_count = 0
                 context[k].each do |context_uri|
                   expanded_results = extract_preds_for_uri(graph, preds_for_search(include_context: false, include_sort: false), context_uri)
-                  filled_context.merge!(consolidate_search_results(expanded_results, include_context: false, process_all: true, default_uri: context_uri.to_s))
-                  filled_context = context_uri.to_s if expanded_results.blank?
+                  expanded_results = consolidate_search_results(expanded_results, include_context: false, process_all: true, default_uri: context_uri.to_s)
+                  if expanded_results.blank?
+                    blank_count += 1
+                    expanded_results[context_uri.to_s] = {}
+                  end
+                  filled_context.merge!(expanded_results)
+                end
+                if blank_count == context[k].count
+                  # if all are blank, then just return the keys
+                  filled_context = filled_context.keys
                 end
                 context[k] = filled_context
               else
@@ -191,7 +242,7 @@ module Qa::Authorities
         end
 
         def wrap_labels(labels)
-          lbl = "" if labels.nil? || labels.size.zero?
+          return "" if labels.blank?
           lbl = labels.join(', ') if labels.size.positive?
           lbl = '[' + lbl + ']' if labels.size > 1
           lbl
