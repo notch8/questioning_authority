@@ -35,7 +35,7 @@ class Qa::LinkedDataTermsController < ::ApplicationController
   # get "/search/linked_data/:vocab(/:subauthority)"
   # @see Qa::Authorities::LinkedData::SearchQuery#search
   def search
-    terms = @authority.search(query, subauth: subauthority, language: language, replacements: replacement_params)
+      terms = @authority.search(query, subauth: subauthority, language: language, replacements: replacement_params, include_performance_data: performance_data)
     cors_allow_origin_header(response)
     render json: terms
   rescue Qa::ServiceUnavailable
@@ -55,7 +55,7 @@ class Qa::LinkedDataTermsController < ::ApplicationController
   # get "/show/linked_data/:vocab/:subauthority/:id
   # @see Qa::Authorities::LinkedData::FindTerm#find
   def show # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
-    term = @authority.find(id, subauth: subauthority, language: language, replacements: replacement_params, jsonld: jsonld?)
+    term = @authority.find(id, subauth: subauthority, language: language, replacements: replacement_params, include_performance_data: performance_data, jsonld: jsonld?)
     cors_allow_origin_header(response)
     content_type = jsonld? ? 'application/ld+json' : 'application/json'
     render json: term, content_type: content_type
@@ -173,6 +173,11 @@ class Qa::LinkedDataTermsController < ::ApplicationController
 
     def replacement_params
       params.reject { |k, _v| ['q', 'vocab', 'controller', 'action', 'subauthority', 'language', 'id'].include?(k) }
+    end
+
+    def performance_data
+      return true if params[:performance_data] && params[:performance_data].casecmp('true')
+      false
     end
 
     def subauth_warn_msg

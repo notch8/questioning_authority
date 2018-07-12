@@ -25,7 +25,7 @@ module Qa::Authorities
       #   [ {"uri":"http://id.worldcat.org/fast/5140","id":"5140","label":"Cornell, Joseph"},
       #     {"uri":"http://id.worldcat.org/fast/72456","id":"72456","label":"Cornell, Sarah Maria, 1802-1832"},
       #     {"uri":"http://id.worldcat.org/fast/409667","id":"409667","label":"Cornell, Ezra, 1807-1874"} ]
-      def search(query, language: nil, replacements: {}, subauth: nil)
+      def search(query, language: nil, replacements: {}, subauth: nil, include_performance_data: false)
         raise Qa::InvalidLinkedDataAuthority, "Unable to initialize linked data search sub-authority #{subauth}" unless subauth.nil? || subauthority?(subauth)
         language ||= search_config.language
         url = search_config.url_with_replacements(query, subauth, replacements)
@@ -34,13 +34,15 @@ module Qa::Authorities
         access_start_dt = Time.now
         @graph = get_linked_data(url)
         access_end_dt = Time.now
-        Rails.logger.info("Time to receive data from authority: #{access_end_dt - access_start_dt}s")
+        access_time_s = access_end_dt - access_start_dt
+        Rails.logger.info("Time to receive data from authority: #{access_time_s}s")
 
         parse_start_dt = Time.now
         json = parse_search_authority_response(language)
         parse_end_dt = Time.now
-        Rails.logger.info("Time to convert data to json: #{parse_end_dt - parse_start_dt}s")
-
+        parse_time_s = parse_end_dt - parse_start_dt
+        Rails.logger.info("Time to convert data to json: #{parse_time_s}s")
+        json = append_performance_data(json, access_time_s, parse_time_s) if include_performance_data
         json
       end
 
@@ -295,6 +297,14 @@ module Qa::Authorities
 
         def s_is_i?(s)
           /\A[-+]?\d+\z/ === s # rubocop:disable Style/CaseEquality
+        end
+
+        def append_performance_data(results, access_time_s, parse_time_s)
+          performance = { result_count: results.size,
+                          fetch_time_s: access_time_s,
+                          normalization_time_s: parse_time_s,
+                          total_time_s: (access_time_s + parse_time_s) }
+          { performance: performance, results: results }
         end
     end
   end
