@@ -4,7 +4,7 @@ require 'rdf'
 # @see Qa::Authorities::LinkedData::GenericAuthority
 module Qa::Authorities
   module LinkedData
-    module RdfHelper # rubocop:disable Metrics/ModuleLength
+    module RdfHelper
       private
 
         def object_value(stmt_hash, consolidated_hash, name, as_string = true)
@@ -90,29 +90,17 @@ module Qa::Authorities
 
         def extract_preds(graph, preds)
           RDF::Query.execute(graph) do
-            preds[:required].each do |key, pred|
-              pattern([:uri, pred, key])
-            end
-            preds[:optional].each do |key, pred|
-              pattern([:uri, pred, key], optional: true)
-            end
-            preds[:context].each do |key, pred|
-              pattern([:uri, pred, key], optional: true)
-            end if preds.key? :context
+            preds[:required].each { |key, pred| pattern([:uri, pred, key]) }
+            preds[:optional].each { |key, pred| pattern([:uri, pred, key], optional: true) }
+            preds[:context].each { |key, pred| pattern([:uri, pred, key], optional: true) } if preds.key? :context
           end
         end
 
         def extract_preds_for_uri(graph, preds, uri)
           RDF::Query.execute(graph) do
-            preds[:required].each do |key, pred|
-              pattern([uri, pred, key])
-            end
-            preds[:optional].each do |key, pred|
-              pattern([uri, pred, key], optional: true)
-            end
-            preds[:context].each do |key, pred|
-              pattern([uri, pred, key], optional: true)
-            end if preds.key? :context
+            preds[:required].each { |key, pred| pattern([uri, pred, key]) }
+            preds[:optional].each { |key, pred| pattern([uri, pred, key], optional: true) }
+            preds[:context].each { |key, pred| pattern([uri, pred, key], optional: true) } if preds.key? :context
           end
         end
 

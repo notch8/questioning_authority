@@ -25,21 +25,21 @@ module Qa::Authorities
       #   [ {"uri":"http://id.worldcat.org/fast/5140","id":"5140","label":"Cornell, Joseph"},
       #     {"uri":"http://id.worldcat.org/fast/72456","id":"72456","label":"Cornell, Sarah Maria, 1802-1832"},
       #     {"uri":"http://id.worldcat.org/fast/409667","id":"409667","label":"Cornell, Ezra, 1807-1874"} ]
-      def search(query, language: nil, replacements: {}, subauth: nil, include_performance_data: false)
+      def search(query, language: nil, replacements: {}, subauth: nil, include_performance_data: false) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
         raise Qa::InvalidLinkedDataAuthority, "Unable to initialize linked data search sub-authority #{subauth}" unless subauth.nil? || subauthority?(subauth)
         language ||= search_config.language
         url = search_config.url_with_replacements(query, subauth, replacements)
         Rails.logger.info "QA Linked Data search url: #{url}"
 
-        access_start_dt = Time.now
+        access_start_dt = Time.now.utc
         @graph = get_linked_data(url)
-        access_end_dt = Time.now
+        access_end_dt = Time.now.utc
         access_time_s = access_end_dt - access_start_dt
         Rails.logger.info("Time to receive data from authority: #{access_time_s}s")
 
-        parse_start_dt = Time.now
+        parse_start_dt = Time.now.utc
         json = parse_search_authority_response(language)
-        parse_end_dt = Time.now
+        parse_end_dt = Time.now.utc
         parse_time_s = parse_end_dt - parse_start_dt
         Rails.logger.info("Time to convert data to json: #{parse_time_s}s")
         json = append_performance_data(json, access_time_s, parse_time_s) if include_performance_data
@@ -112,7 +112,8 @@ module Qa::Authorities
         #         :context=>{
         #           :"Alternate Label"=>[],
         #           :Broader=>[#<RDF::URI:0x3fe5099785c8 URI:http://id.loc.gov/authorities/genreForms/gf2014027009>],
-        #           :Narrower=>[#<RDF::URI:0x3fe50b57e36c URI:http://id.loc.gov/authorities/genreForms/gf2014026998>, #<RDF::URI:0x3fe509981574 URI:http://id.loc.gov/authorities/genreForms/gf2014027098>],
+        #           :Narrower=>[#<RDF::URI:0x3fe50b57e36c URI:http://id.loc.gov/authorities/genreForms/gf2014026998>,
+        #                       #<RDF::URI:0x3fe509981574 URI:http://id.loc.gov/authorities/genreForms/gf2014027098>],
         #           :"Exact Match"=>[],
         #           :Note=>[]
         #         }
@@ -124,7 +125,8 @@ module Qa::Authorities
         #         :altlabel=>[],
         #         :sort=>[#<RDF::Literal:0x3fe50b6f9854("2")>],
         #         :context=>{
-        #           :"Alternate Label"=>[#<RDF::Literal:0x3fe50b725328("Philly soul (Music)")>, #<RDF::Literal:0x3fe50b7247fc("Sound of Philadelphia (Music)")>],
+        #           :"Alternate Label"=>[#<RDF::Literal:0x3fe50b725328("Philly soul (Music)")>,
+        #                                #<RDF::Literal:0x3fe50b7247fc("Sound of Philadelphia (Music)")>],
         #           :Broader=>[#<RDF::URI:0x3fe50b721de0 URI:http://id.loc.gov/authorities/genreForms/gf2014027106>],
         #           :Narrower=>[],
         #           :"Exact Match"=>[],
@@ -173,7 +175,7 @@ module Qa::Authorities
           consolidated_results
         end
 
-        def fill_in_secondary_context_values(consolidated_results)
+        def fill_in_secondary_context_values(consolidated_results) # rubocop:disable Metrics/MethodLength, Metrics/AbcSize
           return consolidated_results unless search_config.supports_context?
           consolidated_results.each do |uri, predicate_hash|
             context = predicate_hash[:context]
