@@ -11,6 +11,7 @@ module Qa
         return
       end
       response.headers['Access-Control-Allow-Origin'] = '*'
+      response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
       response.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
       head :no_content
     end
