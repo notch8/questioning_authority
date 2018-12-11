@@ -13,6 +13,7 @@ Qa::Engine.routes.draw do
   match "/search/linked_data/:vocab(/:subauthority)", to: 'application#options', via: [:options]
   match "/show/linked_data/:vocab/:id", to: 'application#options', via: [:options]
   match "/show/linked_data/:vocab/:subauthority/:id", to: 'application#options', via: [:options]
+  match "/fetch/linked_data/:vocab", to: 'application#options', via: [:options]
   match "/terms/:vocab(/:subauthority)",  to: 'application#options', via: [:options]
   match "/search/:vocab(/:subauthority)", to: 'application#options', via: [:options]
   match "/show/:vocab/:id", to: 'application#options', via: [:options]
