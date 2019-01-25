@@ -231,6 +231,10 @@ describe Qa::LinkedDataTermsController, type: :controller do
         end
       end
     end
+
+    it 'returns basic data + context when context=true' do
+      skip 'Pending: Need to write #search test with and without the context parameter'
+    end
   end
 
   describe '#show' do

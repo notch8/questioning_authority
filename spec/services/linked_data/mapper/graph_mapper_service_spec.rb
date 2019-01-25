@@ -71,6 +71,10 @@ RSpec.describe Qa::LinkedData::Mapper::GraphMapperService do
         validate_entry(subject, :sort, ['3'], RDF::Literal)
       end
     end
+
+    it 'yields to passed in block' do
+      skip 'Pending: Need to write test to confirm passed in block can modify value_map'
+    end
   end
 
   def validate_entry(results, key, values, entry_kind)

@@ -1,4 +1,6 @@
 # Defines the external authority predicates used to extract additional context from the graph.
+require 'ldpath'
+
 module Qa
   module LinkedData
     module Config
@@ -6,8 +8,8 @@ module Qa
         attr_reader :group_id, # id that identifies which group the property should be in
                     :label # plain text label extracted from locales or using the default
 
-        attr_reader :property_map, :ldpath
-        private :property_map, :ldpath
+        attr_reader :property_map, :ldpath, :prefixes
+        private :property_map, :ldpath, :prefixes
 
         # @param [Hash] property_map defining information to return to provide context
         # @option property_map [String] :group_id (optional) default label to use for a property (default: no label)
@@ -25,13 +27,14 @@ module Qa
         #     "selectable": false,
         #     "drillable": false
         #   }
-        def initialize(property_map = {})
+        def initialize(property_map = {}, prefixes = {})
           @property_map = property_map
           @group_id = Qa::LinkedData::Config::Helper.fetch_symbol(property_map, :group_id, nil)
           @label = extract_label
           @ldpath = Qa::LinkedData::Config::Helper.fetch_required(property_map, :ldpath, false)
           @selectable = Qa::LinkedData::Config::Helper.fetch_boolean(property_map, :selectable, false)
           @drillable = Qa::LinkedData::Config::Helper.fetch_boolean(property_map, :drillable, false)
+          @prefixes = prefixes
         end
 
         # Can this property be the selected value?
@@ -44,6 +47,14 @@ module Qa
         # @return true if can be selected; otherwise, false
         def drillable?
           @drillable
+        end
+
+        def ldpath_program
+          return @program if @program.present?
+          program_code = ""
+          prefixes.each { |key, url| program_code << "@prefix #{key} : <#{url}> \;\n" }
+          program_code << "property = #{ldpath} \;"
+          @program = Ldpath::Program.parse program_code
         end
 
         def group?

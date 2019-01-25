@@ -59,5 +59,9 @@ RSpec.describe Qa::LinkedData::Mapper::SearchResultsMapperService do
       expect(subjects).not_to include "http://id.worldcat.org/fast/510103"
       expect(subjects).not_to include "_:b0"
     end
+
+    it 'adds context if requested' do
+      skip 'Pending: Need to write tests checking that the context_mapper_service is called only when context is requested and exists'
+    end
   end
 end

@@ -38,6 +38,10 @@ RSpec.describe Qa::LinkedData::Config::ContextPropertyMap do
         expect { subject }.to raise_error(Qa::InvalidConfiguration, 'drillable must be true or false')
       end
     end
+
+    it 'processes prefixes parameter' do
+      skip 'Pending: Need to test passing prefixes parameter to #initialize'
+    end
   end
 
   describe '#selectable?' do
@@ -176,6 +180,12 @@ RSpec.describe Qa::LinkedData::Config::ContextPropertyMap do
       it 'returns false' do
         expect(subject.group?).to be false
       end
+    end
+  end
+
+  describe '#ldpath_program' do
+    it 'returns the ldpath program for this property map' do
+      skip 'Pending: Need to write tests for #ldpath_program'
     end
   end
 end

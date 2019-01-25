@@ -48,6 +48,12 @@ RSpec.describe Qa::LinkedData::Config::ContextMap do
     }
   end
 
+  describe '#new' do
+    it 'tests required context_map parameter and optional prefixes parameter' do
+      skip 'Pending: Need to write test for #initialize method'
+    end
+  end
+
   describe '#properties' do
     it 'returns the configured url template' do
       expect(subject.properties.size).to eq 3

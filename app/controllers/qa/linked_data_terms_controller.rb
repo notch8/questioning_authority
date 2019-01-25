@@ -35,7 +35,7 @@ class Qa::LinkedDataTermsController < ::ApplicationController
   # get "/search/linked_data/:vocab(/:subauthority)"
   # @see Qa::Authorities::LinkedData::SearchQuery#search
   def search
-    terms = @authority.search(query, subauth: subauthority, language: language, replacements: replacement_params)
+    terms = @authority.search(query, subauth: subauthority, language: language, replacements: replacement_params, context: context?)
     cors_allow_origin_header(response)
     render json: terms
   rescue Qa::ServiceUnavailable
@@ -187,6 +187,11 @@ class Qa::LinkedDataTermsController < ::ApplicationController
 
     def jsonld?
       format == 'jsonld'
+    end
+
+    def context?
+      context = params.fetch(:context, false)
+      context == 'true' ? true : false
     end
 
     def validate_auth_reload_token
