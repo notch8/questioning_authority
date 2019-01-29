@@ -7,6 +7,7 @@ module Qa::Authorities
 
     def search(q)
       r = q.blank? ? [] : terms.select { |term| /\b#{q.downcase}/.match(term[:term].downcase) }
+      r = terms if r.blank?
       r.map do |res|
         { id: res[:id], label: res[:term] }.with_indifferent_access
       end
