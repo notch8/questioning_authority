@@ -59,7 +59,7 @@ class Qa::TermsController < ::ApplicationController
   end
 
   def check_query_param
-    head :not_found unless params[:q].present?
+    params[:q] = "*" unless params[:q].present?
   end
 
   private
